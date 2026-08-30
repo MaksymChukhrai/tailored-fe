@@ -5,11 +5,15 @@
       "destination": "https://tailored-be-production.up.railway.app/:path*"
     },
     {
-      "source": "/auth/:path*",
-      "destination": "https://tailored-be-production.up.railway.app/auth/:path*"
+      "source": "/auth/google",
+      "destination": "https://tailored-be-production.up.railway.app/auth/google"
     },
     {
-      "source": "/((?!api/|auth/).*)",
+      "source": "/auth/google/callback",
+      "destination": "https://tailored-be-production.up.railway.app/auth/google/callback"
+    },
+    {
+      "source": "/((?!api/|auth/google).*)",
       "destination": "/index.html"
     }
   ]
