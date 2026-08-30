@@ -5,7 +5,11 @@
       "destination": "https://tailored-be-production.up.railway.app/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/auth/:path*",
+      "destination": "https://tailored-be-production.up.railway.app/auth/:path*"
+    },
+    {
+      "source": "/((?!api/|auth/).*)",
       "destination": "/index.html"
     }
   ]
