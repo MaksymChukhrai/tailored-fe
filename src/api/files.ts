@@ -2,26 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
 import type { FileNode } from '@/types/api'
 
-const FOLDER_KEY = (id: string) => ['folders', id] as const
-const DATA_ROOM_CONTENTS_KEY = (dataRoomId: string) =>
-  ['data-rooms', dataRoomId, 'contents'] as const
-
-function invalidateParent(
-  queryClient: ReturnType<typeof useQueryClient>,
-  folderId: string | null,
-  dataRoomId: string,
-): void {
-  if (folderId) {
-    void queryClient.invalidateQueries({
-      queryKey: FOLDER_KEY(folderId),
-      refetchType: "active",
-    });
-  } else {
-    void queryClient.invalidateQueries({
-      queryKey: DATA_ROOM_CONTENTS_KEY(dataRoomId),
-      refetchType: "active",
-    });
-  }
+function invalidateTree(queryClient: ReturnType<typeof useQueryClient>): void {
+  queryClient.removeQueries({ queryKey: ["folders"] });
+  queryClient.removeQueries({ queryKey: ["data-rooms"] });
+  void queryClient.refetchQueries({ queryKey: ["folders"], type: "active" });
+  void queryClient.refetchQueries({ queryKey: ["data-rooms"], type: "active" });
 }
 
 interface UploadFileParams {
@@ -92,8 +77,8 @@ export function useRenameFile() {
       const response = await apiClient.patch<FileNode>(`/files/${id}`, { name })
       return response.data
     },
-    onSuccess: (_file, variables) => {
-      invalidateParent(queryClient, variables.folderId, variables.dataRoomId)
+    onSuccess: () => {
+      invalidateTree(queryClient)
     },
   })
 }
@@ -112,19 +97,8 @@ export function useMoveFile() {
     mutationFn: async ({ id, targetFolderId }: MoveFileParams): Promise<void> => {
       await apiClient.patch(`/files/${id}/move`, { targetFolderId })
     },
-    onSuccess: (_data, variables) => {
-      invalidateParent(queryClient, variables.sourceFolderId, variables.dataRoomId)
-      if (variables.targetFolderId) {
-        void queryClient.invalidateQueries({
-          queryKey: FOLDER_KEY(variables.targetFolderId),
-          refetchType: "active",
-        });
-      } else {
-        void queryClient.invalidateQueries({
-          queryKey: DATA_ROOM_CONTENTS_KEY(variables.dataRoomId),
-          refetchType: "active",
-        });
-      }
+    onSuccess: () => {
+      invalidateTree(queryClient)
     },
   })
 }
@@ -142,8 +116,8 @@ export function useDeleteFile() {
     mutationFn: async ({ id }: DeleteFileParams): Promise<void> => {
       await apiClient.delete(`/files/${id}`)
     },
-    onSuccess: (_data, variables) => {
-      invalidateParent(queryClient, variables.folderId, variables.dataRoomId)
+    onSuccess: () => {
+      invalidateTree(queryClient)
     },
   })
 }

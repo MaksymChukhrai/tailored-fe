@@ -33,8 +33,14 @@ export function FolderPage(): JSX.Element {
   }
 
   const handleUploaded = (): void => {
-    void queryClient.invalidateQueries({ queryKey: ['folders', folderId] })
-  }
+    queryClient.removeQueries({ queryKey: ["folders"] });
+    queryClient.removeQueries({ queryKey: ["data-rooms"] });
+    void queryClient.refetchQueries({ queryKey: ["folders"], type: "active" });
+    void queryClient.refetchQueries({
+      queryKey: ["data-rooms"],
+      type: "active",
+    });
+  };
 
   const handleRenameConfirm = (newName: string): void => {
     if (!folder.data) return

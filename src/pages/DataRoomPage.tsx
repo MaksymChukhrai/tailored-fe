@@ -19,8 +19,14 @@ export function DataRoomPage(): JSX.Element {
   }
 
   const handleUploaded = (): void => {
-    void queryClient.invalidateQueries({ queryKey: ['data-rooms', roomId, 'contents'] })
-  }
+    queryClient.removeQueries({ queryKey: ["folders"] });
+    queryClient.removeQueries({ queryKey: ["data-rooms"] });
+    void queryClient.refetchQueries({ queryKey: ["folders"], type: "active" });
+    void queryClient.refetchQueries({
+      queryKey: ["data-rooms"],
+      type: "active",
+    });
+  };
 
   return (
     <div className="min-h-svh bg-background">
