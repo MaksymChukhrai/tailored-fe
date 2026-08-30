@@ -3,10 +3,14 @@ import { apiClient } from '@/api/client'
 import type { FileNode } from '@/types/api'
 
 function invalidateTree(queryClient: ReturnType<typeof useQueryClient>): void {
-  queryClient.removeQueries({ queryKey: ["folders"] });
-  queryClient.removeQueries({ queryKey: ["data-rooms"] });
-  void queryClient.refetchQueries({ queryKey: ["folders"], type: "active" });
-  void queryClient.refetchQueries({ queryKey: ["data-rooms"], type: "active" });
+  void queryClient.invalidateQueries({
+    queryKey: ["folders"],
+    refetchType: "active",
+  });
+  void queryClient.invalidateQueries({
+    queryKey: ["data-rooms"],
+    refetchType: "active",
+  });
 }
 
 interface UploadFileParams {
@@ -110,14 +114,14 @@ interface DeleteFileParams {
 }
 
 export function useDeleteFile() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id }: DeleteFileParams): Promise<void> => {
-      await apiClient.delete(`/files/${id}`)
+      await apiClient.delete(`/files/${id}`);
     },
     onSuccess: () => {
-      invalidateTree(queryClient)
+      invalidateTree(queryClient);
     },
-  })
+  });
 }

@@ -55,12 +55,15 @@ export function FolderCard({
   }
 
   const handleDrop = (event: DragEvent<HTMLDivElement>): void => {
+    const raw = event.dataTransfer.getData(DRAG_MIME_TYPE)
+    if (!raw) {
+      setIsDragOver(false)
+      return
+    }
+
     event.preventDefault()
     event.stopPropagation()
     setIsDragOver(false)
-
-    const raw = event.dataTransfer.getData(DRAG_MIME_TYPE)
-    if (!raw) return
 
     try {
       const item = JSON.parse(raw) as DraggedItem

@@ -18,8 +18,15 @@ export function FolderPage(): JSX.Element {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: dataRoom } = useDataRoom(roomId)
-  const folder = useFolder(folderId)
+  const { data: dataRoom } = useDataRoom(roomId);
+  const folder = useFolder(folderId);
+
+  console.log(
+    "[FolderPage] render, files count:",
+    folder.data?.files.length,
+    "dataUpdatedAt:",
+    folder.dataUpdatedAt,
+  );
 
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -33,12 +40,13 @@ export function FolderPage(): JSX.Element {
   }
 
   const handleUploaded = (): void => {
-    queryClient.removeQueries({ queryKey: ["folders"] });
-    queryClient.removeQueries({ queryKey: ["data-rooms"] });
-    void queryClient.refetchQueries({ queryKey: ["folders"], type: "active" });
-    void queryClient.refetchQueries({
+    void queryClient.invalidateQueries({
+      queryKey: ["folders"],
+      refetchType: "active",
+    });
+    void queryClient.invalidateQueries({
       queryKey: ["data-rooms"],
-      type: "active",
+      refetchType: "active",
     });
   };
 
