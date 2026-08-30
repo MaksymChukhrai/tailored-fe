@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://tailored-be-production.up.railway.app/:path*"
+    }
+  ]
+}
