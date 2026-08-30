@@ -1,4 +1,4 @@
-import { useState, type JSX } from 'react'
+import { useState, useEffect, type JSX } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -18,15 +18,8 @@ export function FolderPage(): JSX.Element {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: dataRoom } = useDataRoom(roomId);
-  const folder = useFolder(folderId);
-
-  console.log(
-    "[FolderPage] render, files count:",
-    folder.data?.files.length,
-    "dataUpdatedAt:",
-    folder.dataUpdatedAt,
-  );
+  const { data: dataRoom } = useDataRoom(roomId)
+  const folder = useFolder(folderId)
 
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -35,20 +28,26 @@ export function FolderPage(): JSX.Element {
   const renameFolder = useRenameFolder()
   const deleteFolder = useDeleteFolder()
 
+  useEffect(() => {
+    if (folderId && folder.isError) {
+      toast.error("This folder doesn't exist or you don't have access to it")
+    }
+  }, [folderId, folder.isError])
+
   if (!roomId || !folderId || folder.isError) {
     return <Navigate to={roomId ? `/rooms/${roomId}` : '/'} replace />
   }
 
   const handleUploaded = (): void => {
     void queryClient.invalidateQueries({
-      queryKey: ["folders"],
-      refetchType: "active",
-    });
+      queryKey: ['folders'],
+      refetchType: 'active',
+    })
     void queryClient.invalidateQueries({
-      queryKey: ["data-rooms"],
-      refetchType: "active",
-    });
-  };
+      queryKey: ['data-rooms'],
+      refetchType: 'active',
+    })
+  }
 
   const handleRenameConfirm = (newName: string): void => {
     if (!folder.data) return

@@ -72,12 +72,19 @@ apiClient.interceptors.response.use(
       !originalRequest._retry &&
       !isAuthEndpoint
     ) {
-      originalRequest._retry = true
+      originalRequest._retry = true;
       try {
-        await refreshAccessToken()
-        return apiClient(originalRequest)
+        await refreshAccessToken();
+        return apiClient(originalRequest);
       } catch (refreshError: unknown) {
-        return Promise.reject(refreshError)
+        if (window.location.pathname !== "/login") {
+          sessionStorage.setItem(
+            "post-login-redirect",
+            window.location.pathname,
+          );
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
 

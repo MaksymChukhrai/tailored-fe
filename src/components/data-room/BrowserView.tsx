@@ -1,5 +1,6 @@
 import { useState, type JSX, type ReactNode } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { UploadDropzone } from '@/components/data-room/UploadDropzone'
 import { UploadButton } from '@/components/data-room/UploadButton'
 import { UploadQueuePanel } from '@/components/data-room/UploadQueuePanel'
@@ -33,6 +34,11 @@ interface BrowserViewProps {
   onUploaded: () => void
 }
 
+function refreshTreeOnStaleReference(queryClient: ReturnType<typeof useQueryClient>): void {
+  void queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' })
+  void queryClient.invalidateQueries({ queryKey: ['data-rooms'], refetchType: 'active' })
+}
+
 export function BrowserView({
   dataRoomId,
   folderId,
@@ -44,6 +50,7 @@ export function BrowserView({
   onOpenFolder,
   onUploaded,
 }: BrowserViewProps): JSX.Element {
+  const queryClient = useQueryClient()
   const [previewFile, setPreviewFile] = useState<FileNode | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -55,6 +62,13 @@ export function BrowserView({
   const renameFile = useRenameFile()
   const deleteFile = useDeleteFile()
   const moveFile = useMoveFile()
+
+  const handleMutationError = (error: unknown, fallbackMessage: string): void => {
+    toast.error(error instanceof ApiError ? error.message : fallbackMessage)
+    if (error instanceof ApiError && error.statusCode === 404) {
+      refreshTreeOnStaleReference(queryClient)
+    }
+  }
 
   const handleRenameConfirm = (newName: string): void => {
     if (!renameTarget) return
@@ -73,7 +87,8 @@ export function BrowserView({
             setRenameTarget(null)
           },
           onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Rename failed')
+            handleMutationError(error, 'Rename failed')
+            setRenameTarget(null)
           },
         },
       )
@@ -91,7 +106,8 @@ export function BrowserView({
             setRenameTarget(null)
           },
           onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Rename failed')
+            handleMutationError(error, 'Rename failed')
+            setRenameTarget(null)
           },
         },
       )
@@ -114,7 +130,8 @@ export function BrowserView({
             setDeleteTarget(null)
           },
           onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Delete failed')
+            handleMutationError(error, 'Delete failed')
+            setDeleteTarget(null)
           },
         },
       )
@@ -131,7 +148,8 @@ export function BrowserView({
             setDeleteTarget(null)
           },
           onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Delete failed')
+            handleMutationError(error, 'Delete failed')
+            setDeleteTarget(null)
           },
         },
       )
@@ -141,6 +159,7 @@ export function BrowserView({
   const handleDownload = (file: FileNode): void => {
     void downloadAndOpenFile(file.id).catch(() => {
       toast.error('Failed to generate download link')
+      refreshTreeOnStaleReference(queryClient)
     })
   }
 
@@ -159,9 +178,7 @@ export function BrowserView({
         },
         {
           onSuccess: () => toast.success('Folder moved'),
-          onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Move failed')
-          },
+          onError: (error: unknown) => handleMutationError(error, 'Move failed'),
         },
       )
     } else {
@@ -174,9 +191,7 @@ export function BrowserView({
         },
         {
           onSuccess: () => toast.success('File moved'),
-          onError: (error: unknown) => {
-            toast.error(error instanceof ApiError ? error.message : 'Move failed')
-          },
+          onError: (error: unknown) => handleMutationError(error, 'Move failed'),
         },
       )
     }

@@ -1,37 +1,44 @@
-import type { JSX } from "react";
-import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { BrowserView } from "@/components/data-room/BrowserView";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useDataRoom, useDataRoomContents } from "@/api/data-rooms";
+import { useEffect, type JSX } from 'react'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { AppHeader } from '@/components/layout/AppHeader'
+import { BrowserView } from '@/components/data-room/BrowserView'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useDataRoom, useDataRoomContents } from '@/api/data-rooms'
 
 export function DataRoomPage(): JSX.Element {
-  const { roomId } = useParams<{ roomId: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { roomId } = useParams<{ roomId: string }>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const {
     data: dataRoom,
     isLoading: isRoomLoading,
     isError: isRoomError,
-  } = useDataRoom(roomId);
-  const contents = useDataRoomContents(roomId);
+  } = useDataRoom(roomId)
+  const contents = useDataRoomContents(roomId)
+
+  useEffect(() => {
+    if (roomId && isRoomError) {
+      toast.error("This data room doesn't exist or you don't have access to it")
+    }
+  }, [roomId, isRoomError])
 
   if (!roomId || isRoomError) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" replace />
   }
 
   const handleUploaded = (): void => {
     void queryClient.invalidateQueries({
-      queryKey: ["folders"],
-      refetchType: "active",
-    });
+      queryKey: ['folders'],
+      refetchType: 'active',
+    })
     void queryClient.invalidateQueries({
-      queryKey: ["data-rooms"],
-      refetchType: "active",
-    });
-  };
+      queryKey: ['data-rooms'],
+      refetchType: 'active',
+    })
+  }
 
   return (
     <div className="min-h-svh bg-background">
@@ -57,5 +64,5 @@ export function DataRoomPage(): JSX.Element {
         onUploaded={handleUploaded}
       />
     </div>
-  );
+  )
 }

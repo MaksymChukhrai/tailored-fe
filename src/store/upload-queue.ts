@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { uploadFile } from '@/api/files'
+import { formatBytes } from '@/lib/format'
 
 export type UploadStatus = 'pending' | 'uploading' | 'success' | 'error'
 
@@ -24,6 +25,7 @@ interface UploadQueueState {
 }
 
 const MAX_CONCURRENT_UPLOADS = 3
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 function createTaskId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -34,14 +36,20 @@ export const useUploadQueueStore = create<UploadQueueState>((set, get) => ({
   onUploaded: undefined,
 
   enqueue: (files, dataRoomId, folderId, onUploaded) => {
-    const newTasks: UploadTask[] = files.map((file) => ({
-      id: createTaskId(),
-      file,
-      dataRoomId,
-      folderId,
-      status: 'pending',
-      progress: 0,
-    }))
+    const newTasks: UploadTask[] = files.map((file) => {
+      const isTooLarge = file.size > MAX_FILE_SIZE_BYTES
+      return {
+        id: createTaskId(),
+        file,
+        dataRoomId,
+        folderId,
+        status: isTooLarge ? 'error' : 'pending',
+        progress: 0,
+        errorMessage: isTooLarge
+          ? `File exceeds the 50 MB limit (${formatBytes(file.size)})`
+          : undefined,
+      }
+    })
 
     set((state) => ({
       tasks: [...state.tasks, ...newTasks],

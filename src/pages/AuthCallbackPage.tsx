@@ -23,5 +23,8 @@ export function AuthCallbackPage(): JSX.Element {
     return <Navigate to="/login" replace />
   }
 
-  return <Navigate to="/" replace />
+  const savedPath = sessionStorage.getItem('post-login-redirect')
+  sessionStorage.removeItem('post-login-redirect')
+
+  return <Navigate to={savedPath && savedPath !== '/login' ? savedPath : '/'} replace />
 }
