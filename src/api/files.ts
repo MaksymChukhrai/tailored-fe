@@ -12,9 +12,15 @@ function invalidateParent(
   dataRoomId: string,
 ): void {
   if (folderId) {
-    void queryClient.invalidateQueries({ queryKey: FOLDER_KEY(folderId) })
+    void queryClient.invalidateQueries({
+      queryKey: FOLDER_KEY(folderId),
+      refetchType: "active",
+    });
   } else {
-    void queryClient.invalidateQueries({ queryKey: DATA_ROOM_CONTENTS_KEY(dataRoomId) })
+    void queryClient.invalidateQueries({
+      queryKey: DATA_ROOM_CONTENTS_KEY(dataRoomId),
+      refetchType: "active",
+    });
   }
 }
 
@@ -109,11 +115,15 @@ export function useMoveFile() {
     onSuccess: (_data, variables) => {
       invalidateParent(queryClient, variables.sourceFolderId, variables.dataRoomId)
       if (variables.targetFolderId) {
-        void queryClient.invalidateQueries({ queryKey: FOLDER_KEY(variables.targetFolderId) })
+        void queryClient.invalidateQueries({
+          queryKey: FOLDER_KEY(variables.targetFolderId),
+          refetchType: "active",
+        });
       } else {
         void queryClient.invalidateQueries({
           queryKey: DATA_ROOM_CONTENTS_KEY(variables.dataRoomId),
-        })
+          refetchType: "active",
+        });
       }
     },
   })

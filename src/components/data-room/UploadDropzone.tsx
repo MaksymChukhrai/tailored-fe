@@ -1,12 +1,19 @@
-import { useRef, useState, type JSX, type ReactNode, type DragEvent } from 'react'
-import { UploadCloud } from 'lucide-react'
-import { useUploadQueueStore } from '@/store/upload-queue'
+import {
+  useRef,
+  useState,
+  type JSX,
+  type ReactNode,
+  type DragEvent,
+} from "react";
+import { toast } from "sonner";
+import { UploadCloud } from "lucide-react";
+import { useUploadQueueStore } from "@/store/upload-queue";
 
 interface UploadDropzoneProps {
-  dataRoomId: string
-  folderId?: string
-  onUploaded: () => void
-  children: ReactNode
+  dataRoomId: string;
+  folderId?: string;
+  onUploaded: () => void;
+  children: ReactNode;
 }
 
 export function UploadDropzone({
@@ -15,41 +22,54 @@ export function UploadDropzone({
   onUploaded,
   children,
 }: UploadDropzoneProps): JSX.Element {
-  const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const dragCounter = useRef(0)
-  const enqueue = useUploadQueueStore((state) => state.enqueue)
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounter = useRef(0);
+  const enqueue = useUploadQueueStore((state) => state.enqueue);
 
   const handleDragEnter = (event: DragEvent<HTMLDivElement>): void => {
-    event.preventDefault()
-    dragCounter.current += 1
-    if (event.dataTransfer.types.includes('Files')) {
-      setIsDraggingOver(true)
+    event.preventDefault();
+    dragCounter.current += 1;
+    if (event.dataTransfer.types.includes("Files")) {
+      setIsDraggingOver(true);
     }
-  }
+  };
 
   const handleDragLeave = (event: DragEvent<HTMLDivElement>): void => {
-    event.preventDefault()
-    dragCounter.current -= 1
+    event.preventDefault();
+    dragCounter.current -= 1;
     if (dragCounter.current <= 0) {
-      dragCounter.current = 0
-      setIsDraggingOver(false)
+      dragCounter.current = 0;
+      setIsDraggingOver(false);
     }
-  }
+  };
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>): void => {
-    event.preventDefault()
-  }
+    event.preventDefault();
+  };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>): void => {
-    event.preventDefault()
-    dragCounter.current = 0
-    setIsDraggingOver(false)
+    event.preventDefault();
+    dragCounter.current = 0;
+    setIsDraggingOver(false);
 
-    const files = Array.from(event.dataTransfer.files)
-    if (files.length > 0) {
-      enqueue(files, dataRoomId, folderId, onUploaded)
+    const items = Array.from(event.dataTransfer.items);
+    const hasDirectory = items.some((item) => {
+      const entry = item.webkitGetAsEntry?.();
+      return entry?.isDirectory ?? false;
+    });
+
+    if (hasDirectory) {
+      toast.error(
+        "Folders cannot be uploaded directly — please drag individual files instead",
+      );
+      return;
     }
-  }
+
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length > 0) {
+      enqueue(files, dataRoomId, folderId, onUploaded);
+    }
+  };
 
   return (
     <div
@@ -69,5 +89,5 @@ export function UploadDropzone({
         </div>
       ) : null}
     </div>
-  )
+  );
 }

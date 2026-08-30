@@ -1,4 +1,4 @@
-import { useState, useEffect, type JSX, type FormEvent } from 'react'
+import { useState, type JSX, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,13 +25,29 @@ export function RenameDialog({
   isPending,
   onConfirm,
 }: RenameDialogProps): JSX.Element {
-  const [name, setName] = useState(currentName)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        {open ? (
+          <RenameForm
+            currentName={currentName}
+            isPending={isPending}
+            onConfirm={onConfirm}
+          />
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-  useEffect(() => {
-    if (open) {
-      setName(currentName)
-    }
-  }, [open, currentName])
+interface RenameFormProps {
+  currentName: string
+  isPending: boolean
+  onConfirm: (newName: string) => void
+}
+
+function RenameForm({ currentName, isPending, onConfirm }: RenameFormProps): JSX.Element {
+  const [name, setName] = useState(currentName)
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
@@ -43,32 +59,28 @@ export function RenameDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Rename</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-2 py-4">
-            <Label htmlFor="rename-input">Name</Label>
-            <Input
-              id="rename-input"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoFocus
-              onFocus={(event) => event.target.select()}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              disabled={!name.trim() || name.trim() === currentName || isPending}
-            >
-              {isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle>Rename</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-2 py-4">
+        <Label htmlFor="rename-input">Name</Label>
+        <Input
+          id="rename-input"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          autoFocus
+          onFocus={(event) => event.target.select()}
+        />
+      </div>
+      <DialogFooter>
+        <Button
+          type="submit"
+          disabled={!name.trim() || name.trim() === currentName || isPending}
+        >
+          {isPending ? 'Saving...' : 'Save'}
+        </Button>
+      </DialogFooter>
+    </form>
   )
 }

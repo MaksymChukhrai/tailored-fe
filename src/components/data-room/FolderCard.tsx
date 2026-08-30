@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import { useState, type JSX, type DragEvent } from 'react'
 import { Folder, MoreVertical, Pencil, Trash2, Share2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { FolderNode } from '@/types/api'
 import { formatBytes } from '@/lib/format'
+import { DRAG_MIME_TYPE, type DraggedItem } from '@/lib/dnd'
 
 interface FolderCardProps {
   folder: FolderNode
@@ -17,6 +18,7 @@ interface FolderCardProps {
   onRename: (folder: FolderNode) => void
   onDelete: (folder: FolderNode) => void
   onShare: (folder: FolderNode) => void
+  onDropItem: (item: DraggedItem, targetFolderId: string) => void
 }
 
 export function FolderCard({
@@ -25,10 +27,63 @@ export function FolderCard({
   onRename,
   onDelete,
   onShare,
+  onDropItem,
 }: FolderCardProps): JSX.Element {
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  const handleDragStart = (event: DragEvent<HTMLDivElement>): void => {
+    const payload: DraggedItem = { kind: 'folder', id: folder.id, currentParentId: folder.parentId }
+    event.dataTransfer.setData(DRAG_MIME_TYPE, JSON.stringify(payload))
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>): void => {
+    if (event.dataTransfer.types.includes(DRAG_MIME_TYPE)) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  const handleDragEnter = (event: DragEvent<HTMLDivElement>): void => {
+    if (event.dataTransfer.types.includes(DRAG_MIME_TYPE)) {
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragLeave = (): void => {
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragOver(false)
+
+    const raw = event.dataTransfer.getData(DRAG_MIME_TYPE)
+    if (!raw) return
+
+    try {
+      const item = JSON.parse(raw) as DraggedItem
+      if (item.kind === 'folder' && item.id === folder.id) {
+        return
+      }
+      onDropItem(item, folder.id)
+    } catch {
+      // Ignore malformed drag payloads
+    }
+  }
+
   return (
     <Card
-      className="group cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40"
+      draggable
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`group cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40 ${
+        isDragOver ? 'border-primary bg-primary/5 ring-2 ring-primary/30' : ''
+      }`}
       onClick={() => onOpen(folder)}
     >
       <CardContent className="flex items-center gap-3 p-4">

@@ -10,10 +10,11 @@ import { DeleteConfirmDialog } from '@/components/data-room/DeleteConfirmDialog'
 import { FilePreviewDialog } from '@/components/data-room/FilePreviewDialog'
 import { ShareDialog } from '@/components/data-room/ShareDialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useRenameFolder, useDeleteFolder } from '@/api/folders'
-import { useRenameFile, useDeleteFile, downloadAndOpenFile } from '@/api/files'
+import { useRenameFolder, useDeleteFolder, useMoveFolder } from '@/api/folders'
+import { useRenameFile, useDeleteFile, useMoveFile, downloadAndOpenFile } from '@/api/files'
 import { ApiError } from '@/api/client'
 import type { ShareTargetRef } from '@/api/shares'
+import type { DraggedItem } from '@/lib/dnd'
 import type { FolderNode, FileNode } from '@/types/api'
 
 type RenameTarget = { type: 'folder'; item: FolderNode } | { type: 'file'; item: FileNode }
@@ -50,8 +51,10 @@ export function BrowserView({
 
   const renameFolder = useRenameFolder()
   const deleteFolder = useDeleteFolder()
+  const moveFolder = useMoveFolder()
   const renameFile = useRenameFile()
   const deleteFile = useDeleteFile()
+  const moveFile = useMoveFile()
 
   const handleRenameConfirm = (newName: string): void => {
     if (!renameTarget) return
@@ -141,6 +144,44 @@ export function BrowserView({
     })
   }
 
+  const handleDropItem = (item: DraggedItem, targetFolderId: string): void => {
+    if (item.currentParentId === targetFolderId) {
+      return
+    }
+
+    if (item.kind === 'folder') {
+      moveFolder.mutate(
+        {
+          id: item.id,
+          targetParentId: targetFolderId,
+          sourceParentId: item.currentParentId,
+          dataRoomId,
+        },
+        {
+          onSuccess: () => toast.success('Folder moved'),
+          onError: (error: unknown) => {
+            toast.error(error instanceof ApiError ? error.message : 'Move failed')
+          },
+        },
+      )
+    } else {
+      moveFile.mutate(
+        {
+          id: item.id,
+          targetFolderId,
+          sourceFolderId: item.currentParentId,
+          dataRoomId,
+        },
+        {
+          onSuccess: () => toast.success('File moved'),
+          onError: (error: unknown) => {
+            toast.error(error instanceof ApiError ? error.message : 'Move failed')
+          },
+        },
+      )
+    }
+  }
+
   const isRenamePending = renameFolder.isPending || renameFile.isPending
   const isDeletePending = deleteFolder.isPending || deleteFile.isPending
 
@@ -183,6 +224,7 @@ export function BrowserView({
               onShareFile={(file) =>
                 setShareTarget({ ref: { type: 'file', id: file.id }, name: file.name })
               }
+              onDropItem={handleDropItem}
             />
           )}
         </main>

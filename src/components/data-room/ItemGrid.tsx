@@ -3,6 +3,7 @@ import { FolderOpen } from 'lucide-react'
 import { FolderCard } from '@/components/data-room/FolderCard'
 import { FileCard } from '@/components/data-room/FileCard'
 import type { FolderNode, FileNode } from '@/types/api'
+import type { DraggedItem } from '@/lib/dnd'
 
 interface ItemGridProps {
   folders: FolderNode[]
@@ -16,6 +17,7 @@ interface ItemGridProps {
   onDeleteFile: (file: FileNode) => void
   onDownloadFile: (file: FileNode) => void
   onShareFile: (file: FileNode) => void
+  onDropItem: (item: DraggedItem, targetFolderId: string) => void
 }
 
 export function ItemGrid({
@@ -30,6 +32,7 @@ export function ItemGrid({
   onDeleteFile,
   onDownloadFile,
   onShareFile,
+  onDropItem,
 }: ItemGridProps): JSX.Element {
   if (folders.length === 0 && files.length === 0) {
     return (
@@ -55,6 +58,7 @@ export function ItemGrid({
           onRename={onRenameFolder}
           onDelete={onDeleteFolder}
           onShare={onShareFolder}
+          onDropItem={onDropItem}
         />
       ))}
       {files.map((file) => (

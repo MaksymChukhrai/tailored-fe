@@ -21,53 +21,73 @@ export function FilePreviewDialog({
   file,
   onOpenChange,
 }: FilePreviewDialogProps): JSX.Element {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [loadError, setLoadError] = useState(false)
-
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null)
-      return
-    }
-
-    setIsLoading(true)
-    setLoadError(false)
-
-    getFilePreviewUrl(file.id)
-      .then((url) => setPreviewUrl(url))
-      .catch(() => setLoadError(true))
-      .finally(() => setIsLoading(false))
-  }, [file])
-
-  if (!file) {
-    return <Dialog open={false} onOpenChange={onOpenChange} />
-  }
-
-  const Icon = getFileIcon(file.mimeType)
-
   return (
     <Dialog open={Boolean(file)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-4xl overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="truncate">{file.name}</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex min-h-72 items-center justify-center overflow-auto">
-          {isLoading ? (
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          ) : loadError || !previewUrl ? (
-            <PreviewFallback file={file} Icon={Icon} previewUrl={previewUrl} />
-          ) : (
-            <FilePreviewContent
-              mimeType={file.mimeType}
-              url={previewUrl}
-              fallback={<PreviewFallback file={file} Icon={Icon} previewUrl={previewUrl} />}
-            />
-          )}
-        </div>
+        {file ? (
+          <PreviewBody key={file.id} file={file} />
+        ) : null}
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface PreviewBodyProps {
+  file: FileNode
+}
+
+function PreviewBody({ file }: PreviewBodyProps): JSX.Element {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+
+  useEffect(() => {
+    let isCancelled = false
+
+    getFilePreviewUrl(file.id)
+      .then((url) => {
+        if (!isCancelled) {
+          setPreviewUrl(url)
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setLoadError(true)
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [file.id])
+
+  const iconComponent = getFileIcon(file.mimeType)
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className="truncate">{file.name}</DialogTitle>
+      </DialogHeader>
+
+      <div className="flex min-h-72 items-center justify-center overflow-auto">
+        {isLoading ? (
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        ) : loadError || !previewUrl ? (
+          <PreviewFallback file={file} Icon={iconComponent} previewUrl={previewUrl} />
+        ) : (
+          <FilePreviewContent
+            mimeType={file.mimeType}
+            url={previewUrl}
+            fallback={<PreviewFallback file={file} Icon={iconComponent} previewUrl={previewUrl} />}
+          />
+        )}
+      </div>
+    </>
   )
 }
 
