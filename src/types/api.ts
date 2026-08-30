@@ -66,8 +66,12 @@ export interface FolderDeletePreview {
 }
 
 export interface ShareGrantee {
-  userId: string
-  email: string
+  shareId: string;
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+  };
 }
 
 export interface Share {

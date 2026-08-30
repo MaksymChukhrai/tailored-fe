@@ -101,7 +101,7 @@ export function ShareLinkRow({
                   key={grantee.userId}
                   className="flex items-center justify-between rounded bg-muted/50 px-2 py-1 text-sm"
                 >
-                  <span className="truncate">{grantee.email}</span>
+                  <span className="truncate">{grantee.user.email}</span>
                   <Button
                     variant="ghost"
                     size="icon-sm"
