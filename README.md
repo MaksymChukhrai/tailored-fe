@@ -47,13 +47,13 @@ Backend repository: [tailored-be](https://github.com/MaksymChukhrai/tailored-be)
 fe/
 ├── src/
 │   ├── api/                   One file per resource (auth, data-rooms, folders,
-│   │                          files, shares) — each exports TanStack Query hooks
-│   │                          and, for uploads, a plain async function
+│   │                          files, shares, search) — each exports TanStack Query
+│   │                          hooks and, for uploads, a plain async function
 │   ├── components/
 │   │   ├── data-room/         Feature components for the authenticated app:
 │   │   │                      grid, cards, dialogs (create/rename/delete/share),
 │   │   │                      upload dropzone and queue panel, file preview
-│   │   ├── layout/             App-wide chrome (header)
+│   │   ├── layout/             App-wide chrome (header, global search)
 │   │   ├── shared/             Read-only counterparts used on the public
 │   │   │                      /shared/:token view (no action menus)
 │   │   └── ui/                 shadcn/ui primitives (generated, not hand-written)
@@ -84,6 +84,8 @@ Each feature area under `components/data-room` is a small, single-purpose compon
 - **Client-side file-size validation before upload** — files over the backend's 50 MB limit are rejected immediately in the upload queue with a clear message, instead of being sent and failing on the server after a slow upload.
 - **Directory drops are rejected, not silently mis-uploaded** — dropping a folder from the OS file explorer is detected via `DataTransferItem.webkitGetAsEntry().isDirectory` and rejected with a toast, rather than uploading a zero-byte file with the folder's name (the browser's File API cannot read a directory's contents without a separate recursive-traversal implementation, which is out of scope for this MVP).
 - **Frontend and backend on different domains** (Vercel and Railway) means cookies must be sent cross-site; `vercel.json` proxies both the API calls and the Google OAuth start/callback URLs through the frontend's own domain, so the entire cookie-setting path — including the OAuth redirect — stays same-origin from the browser's point of view, avoiding `SameSite=None` reliability issues in stricter browsers.
+- **Global search is a plain positioned `<div>`, not a shadcn `Command`/`Popover`** — a debounced, click-outside-aware dropdown is fully expressible with the `Input` primitive already in the project plus a couple of `useEffect` hooks, so pulling in two more Radix primitives for this one use case wasn't worth the added surface area. Search results carry the file's `dataRoomId` and `folderId`, so selecting a result navigates straight to the right room/folder rather than requiring a second lookup.
+- **Highlight-on-navigate via a `?highlight=<fileId>` query param, not component state** — `BrowserView` (shared by both the Data Room root and folder views) reads the param, passes it down to the matching `FileCard`, which scrolls itself into view and shows a ring/pulse for a few seconds before the param is stripped from the URL. Routing the target through the URL rather than through React state or a global store means the same mechanism works whether the user arrives via search, a shared link, or a page refresh, and the highlight never survives a reload by accident.
 
 ## Local Setup
 
