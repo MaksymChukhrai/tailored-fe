@@ -1,8 +1,8 @@
-import type { JSX } from 'react'
-import { Link } from 'react-router-dom'
-import { LogOut, FolderLock } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import type { JSX } from "react";
+import { Link } from "react-router-dom";
+import { LogOut, FolderLock } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,22 +10,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useMe, useLogout } from '@/api/auth'
+} from "@/components/ui/dropdown-menu";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { useMe, useLogout } from "@/api/auth";
 
 export function AppHeader(): JSX.Element {
-  const { data: user } = useMe()
-  const logout = useLogout()
+  const { data: user } = useMe();
+  const logout = useLogout();
 
-  const initial = user?.email.charAt(0).toUpperCase() ?? '?'
+  const initial = user?.email.charAt(0).toUpperCase() ?? "?";
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+        <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold">
           <FolderLock className="size-5" />
           <span>Data Room</span>
         </Link>
+
+        {user ? <GlobalSearch /> : null}
 
         {user ? (
           <DropdownMenu>
@@ -53,5 +56,5 @@ export function AppHeader(): JSX.Element {
         ) : null}
       </div>
     </header>
-  )
+  );
 }

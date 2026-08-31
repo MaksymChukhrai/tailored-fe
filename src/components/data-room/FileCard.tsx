@@ -1,4 +1,4 @@
-import { createElement, type JSX, type DragEvent } from 'react'
+import { createElement, useEffect, useRef, type JSX, type DragEvent } from 'react'
 import { MoreVertical, Pencil, Trash2, Download, Share2, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import type { FileNode } from '@/types/api'
 import { formatBytes } from '@/lib/format'
 import { getFileIcon } from '@/lib/file-icons'
 import { DRAG_MIME_TYPE, type DraggedItem } from '@/lib/dnd'
+import { cn } from '@/lib/utils'
 
 interface FileCardProps {
   file: FileNode
@@ -20,6 +21,7 @@ interface FileCardProps {
   onDelete: (file: FileNode) => void
   onDownload: (file: FileNode) => void
   onShare: (file: FileNode) => void
+  isHighlighted?: boolean
 }
 
 export function FileCard({
@@ -29,7 +31,16 @@ export function FileCard({
   onDelete,
   onDownload,
   onShare,
+  isHighlighted = false,
 }: FileCardProps): JSX.Element {
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isHighlighted) {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [isHighlighted])
+
   const handleDragStart = (event: DragEvent<HTMLDivElement>): void => {
     const payload: DraggedItem = { kind: 'file', id: file.id, currentParentId: file.folderId }
     event.dataTransfer.setData(DRAG_MIME_TYPE, JSON.stringify(payload))
@@ -38,9 +49,13 @@ export function FileCard({
 
   return (
     <Card
+      ref={cardRef}
       draggable
       onDragStart={handleDragStart}
-      className="group cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40"
+      className={cn(
+        'group cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/40',
+        isHighlighted && 'border-primary bg-primary/5 ring-2 ring-primary animate-pulse',
+      )}
       onClick={() => onPreview(file)}
     >
       <CardContent className="flex items-center gap-3 p-4">

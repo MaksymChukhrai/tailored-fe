@@ -1,42 +1,60 @@
-import { useState, type JSX, type ReactNode } from 'react'
-import { toast } from 'sonner'
-import { useQueryClient } from '@tanstack/react-query'
-import { UploadDropzone } from '@/components/data-room/UploadDropzone'
-import { UploadButton } from '@/components/data-room/UploadButton'
-import { UploadQueuePanel } from '@/components/data-room/UploadQueuePanel'
-import { CreateFolderDialog } from '@/components/data-room/CreateFolderDialog'
-import { ItemGrid } from '@/components/data-room/ItemGrid'
-import { RenameDialog } from '@/components/data-room/RenameDialog'
-import { DeleteConfirmDialog } from '@/components/data-room/DeleteConfirmDialog'
-import { FilePreviewDialog } from '@/components/data-room/FilePreviewDialog'
-import { ShareDialog } from '@/components/data-room/ShareDialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useRenameFolder, useDeleteFolder, useMoveFolder } from '@/api/folders'
-import { useRenameFile, useDeleteFile, useMoveFile, downloadAndOpenFile } from '@/api/files'
-import { ApiError } from '@/api/client'
-import type { ShareTargetRef } from '@/api/shares'
-import type { DraggedItem } from '@/lib/dnd'
-import type { FolderNode, FileNode } from '@/types/api'
+import { useState, useEffect, type JSX, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { UploadDropzone } from "@/components/data-room/UploadDropzone";
+import { UploadButton } from "@/components/data-room/UploadButton";
+import { UploadQueuePanel } from "@/components/data-room/UploadQueuePanel";
+import { CreateFolderDialog } from "@/components/data-room/CreateFolderDialog";
+import { ItemGrid } from "@/components/data-room/ItemGrid";
+import { RenameDialog } from "@/components/data-room/RenameDialog";
+import { DeleteConfirmDialog } from "@/components/data-room/DeleteConfirmDialog";
+import { FilePreviewDialog } from "@/components/data-room/FilePreviewDialog";
+import { ShareDialog } from "@/components/data-room/ShareDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRenameFolder, useDeleteFolder, useMoveFolder } from "@/api/folders";
+import {
+  useRenameFile,
+  useDeleteFile,
+  useMoveFile,
+  downloadAndOpenFile,
+} from "@/api/files";
+import { ApiError } from "@/api/client";
+import type { ShareTargetRef } from "@/api/shares";
+import type { DraggedItem } from "@/lib/dnd";
+import type { FolderNode, FileNode } from "@/types/api";
 
-type RenameTarget = { type: 'folder'; item: FolderNode } | { type: 'file'; item: FileNode }
-type DeleteTarget = { type: 'folder'; item: FolderNode } | { type: 'file'; item: FileNode }
-type ShareUiTarget = { ref: ShareTargetRef; name: string }
+type RenameTarget =
+  | { type: "folder"; item: FolderNode }
+  | { type: "file"; item: FileNode };
+type DeleteTarget =
+  | { type: "folder"; item: FolderNode }
+  | { type: "file"; item: FileNode };
+type ShareUiTarget = { ref: ShareTargetRef; name: string };
 
 interface BrowserViewProps {
-  dataRoomId: string
-  folderId?: string
-  titleSlot: ReactNode
-  folders: FolderNode[]
-  files: FileNode[]
-  isLoading: boolean
-  isError: boolean
-  onOpenFolder: (folder: FolderNode) => void
-  onUploaded: () => void
+  dataRoomId: string;
+  folderId?: string;
+  titleSlot: ReactNode;
+  folders: FolderNode[];
+  files: FileNode[];
+  isLoading: boolean;
+  isError: boolean;
+  onOpenFolder: (folder: FolderNode) => void;
+  onUploaded: () => void;
 }
 
-function refreshTreeOnStaleReference(queryClient: ReturnType<typeof useQueryClient>): void {
-  void queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' })
-  void queryClient.invalidateQueries({ queryKey: ['data-rooms'], refetchType: 'active' })
+function refreshTreeOnStaleReference(
+  queryClient: ReturnType<typeof useQueryClient>,
+): void {
+  void queryClient.invalidateQueries({
+    queryKey: ["folders"],
+    refetchType: "active",
+  });
+  void queryClient.invalidateQueries({
+    queryKey: ["data-rooms"],
+    refetchType: "active",
+  });
 }
 
 export function BrowserView({
@@ -50,30 +68,52 @@ export function BrowserView({
   onOpenFolder,
   onUploaded,
 }: BrowserViewProps): JSX.Element {
-  const queryClient = useQueryClient()
-  const [previewFile, setPreviewFile] = useState<FileNode | null>(null)
-  const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
-  const [shareTarget, setShareTarget] = useState<ShareUiTarget | null>(null)
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [previewFile, setPreviewFile] = useState<FileNode | null>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [shareTarget, setShareTarget] = useState<ShareUiTarget | null>(null);
 
-  const renameFolder = useRenameFolder()
-  const deleteFolder = useDeleteFolder()
-  const moveFolder = useMoveFolder()
-  const renameFile = useRenameFile()
-  const deleteFile = useDeleteFile()
-  const moveFile = useMoveFile()
+  const highlightFileId = searchParams.get("highlight") ?? undefined;
 
-  const handleMutationError = (error: unknown, fallbackMessage: string): void => {
-    toast.error(error instanceof ApiError ? error.message : fallbackMessage)
+  useEffect(() => {
+    if (!highlightFileId) return;
+
+    const timeout = setTimeout(() => {
+      setSearchParams(
+        (params) => {
+          params.delete("highlight");
+          return params;
+        },
+        { replace: true },
+      );
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [highlightFileId, setSearchParams]);
+
+  const renameFolder = useRenameFolder();
+  const deleteFolder = useDeleteFolder();
+  const moveFolder = useMoveFolder();
+  const renameFile = useRenameFile();
+  const deleteFile = useDeleteFile();
+  const moveFile = useMoveFile();
+
+  const handleMutationError = (
+    error: unknown,
+    fallbackMessage: string,
+  ): void => {
+    toast.error(error instanceof ApiError ? error.message : fallbackMessage);
     if (error instanceof ApiError && error.statusCode === 404) {
-      refreshTreeOnStaleReference(queryClient)
+      refreshTreeOnStaleReference(queryClient);
     }
-  }
+  };
 
   const handleRenameConfirm = (newName: string): void => {
-    if (!renameTarget) return
+    if (!renameTarget) return;
 
-    if (renameTarget.type === 'folder') {
+    if (renameTarget.type === "folder") {
       renameFolder.mutate(
         {
           id: renameTarget.item.id,
@@ -83,15 +123,15 @@ export function BrowserView({
         },
         {
           onSuccess: () => {
-            toast.success('Folder renamed')
-            setRenameTarget(null)
+            toast.success("Folder renamed");
+            setRenameTarget(null);
           },
           onError: (error: unknown) => {
-            handleMutationError(error, 'Rename failed')
-            setRenameTarget(null)
+            handleMutationError(error, "Rename failed");
+            setRenameTarget(null);
           },
         },
-      )
+      );
     } else {
       renameFile.mutate(
         {
@@ -102,22 +142,22 @@ export function BrowserView({
         },
         {
           onSuccess: () => {
-            toast.success('File renamed')
-            setRenameTarget(null)
+            toast.success("File renamed");
+            setRenameTarget(null);
           },
           onError: (error: unknown) => {
-            handleMutationError(error, 'Rename failed')
-            setRenameTarget(null)
+            handleMutationError(error, "Rename failed");
+            setRenameTarget(null);
           },
         },
-      )
+      );
     }
-  }
+  };
 
   const handleDeleteConfirm = (): void => {
-    if (!deleteTarget) return
+    if (!deleteTarget) return;
 
-    if (deleteTarget.type === 'folder') {
+    if (deleteTarget.type === "folder") {
       deleteFolder.mutate(
         {
           id: deleteTarget.item.id,
@@ -126,15 +166,15 @@ export function BrowserView({
         },
         {
           onSuccess: () => {
-            toast.success('Folder deleted')
-            setDeleteTarget(null)
+            toast.success("Folder deleted");
+            setDeleteTarget(null);
           },
           onError: (error: unknown) => {
-            handleMutationError(error, 'Delete failed')
-            setDeleteTarget(null)
+            handleMutationError(error, "Delete failed");
+            setDeleteTarget(null);
           },
         },
-      )
+      );
     } else {
       deleteFile.mutate(
         {
@@ -144,31 +184,31 @@ export function BrowserView({
         },
         {
           onSuccess: () => {
-            toast.success('File deleted')
-            setDeleteTarget(null)
+            toast.success("File deleted");
+            setDeleteTarget(null);
           },
           onError: (error: unknown) => {
-            handleMutationError(error, 'Delete failed')
-            setDeleteTarget(null)
+            handleMutationError(error, "Delete failed");
+            setDeleteTarget(null);
           },
         },
-      )
+      );
     }
-  }
+  };
 
   const handleDownload = (file: FileNode): void => {
     void downloadAndOpenFile(file.id).catch(() => {
-      toast.error('Failed to generate download link')
-      refreshTreeOnStaleReference(queryClient)
-    })
-  }
+      toast.error("Failed to generate download link");
+      refreshTreeOnStaleReference(queryClient);
+    });
+  };
 
   const handleDropItem = (item: DraggedItem, targetFolderId: string): void => {
     if (item.currentParentId === targetFolderId) {
-      return
+      return;
     }
 
-    if (item.kind === 'folder') {
+    if (item.kind === "folder") {
       moveFolder.mutate(
         {
           id: item.id,
@@ -177,10 +217,11 @@ export function BrowserView({
           dataRoomId,
         },
         {
-          onSuccess: () => toast.success('Folder moved'),
-          onError: (error: unknown) => handleMutationError(error, 'Move failed'),
+          onSuccess: () => toast.success("Folder moved"),
+          onError: (error: unknown) =>
+            handleMutationError(error, "Move failed"),
         },
-      )
+      );
     } else {
       moveFile.mutate(
         {
@@ -190,25 +231,34 @@ export function BrowserView({
           dataRoomId,
         },
         {
-          onSuccess: () => toast.success('File moved'),
-          onError: (error: unknown) => handleMutationError(error, 'Move failed'),
+          onSuccess: () => toast.success("File moved"),
+          onError: (error: unknown) =>
+            handleMutationError(error, "Move failed"),
         },
-      )
+      );
     }
-  }
+  };
 
-  const isRenamePending = renameFolder.isPending || renameFile.isPending
-  const isDeletePending = deleteFolder.isPending || deleteFile.isPending
+  const isRenamePending = renameFolder.isPending || renameFile.isPending;
+  const isDeletePending = deleteFolder.isPending || deleteFile.isPending;
 
   return (
     <>
-      <UploadDropzone dataRoomId={dataRoomId} folderId={folderId} onUploaded={onUploaded}>
+      <UploadDropzone
+        dataRoomId={dataRoomId}
+        folderId={folderId}
+        onUploaded={onUploaded}
+      >
         <main className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             {titleSlot}
             <div className="flex gap-2">
               <CreateFolderDialog dataRoomId={dataRoomId} parentId={folderId} />
-              <UploadButton dataRoomId={dataRoomId} folderId={folderId} onUploaded={onUploaded} />
+              <UploadButton
+                dataRoomId={dataRoomId}
+                folderId={folderId}
+                onUploaded={onUploaded}
+              />
             </div>
           </div>
 
@@ -227,19 +277,34 @@ export function BrowserView({
               folders={folders}
               files={files}
               onOpenFolder={onOpenFolder}
-              onRenameFolder={(folder) => setRenameTarget({ type: 'folder', item: folder })}
-              onDeleteFolder={(folder) => setDeleteTarget({ type: 'folder', item: folder })}
+              onRenameFolder={(folder) =>
+                setRenameTarget({ type: "folder", item: folder })
+              }
+              onDeleteFolder={(folder) =>
+                setDeleteTarget({ type: "folder", item: folder })
+              }
               onShareFolder={(folder) =>
-                setShareTarget({ ref: { type: 'folder', id: folder.id }, name: folder.name })
+                setShareTarget({
+                  ref: { type: "folder", id: folder.id },
+                  name: folder.name,
+                })
               }
               onPreviewFile={setPreviewFile}
-              onRenameFile={(file) => setRenameTarget({ type: 'file', item: file })}
-              onDeleteFile={(file) => setDeleteTarget({ type: 'file', item: file })}
+              onRenameFile={(file) =>
+                setRenameTarget({ type: "file", item: file })
+              }
+              onDeleteFile={(file) =>
+                setDeleteTarget({ type: "file", item: file })
+              }
               onDownloadFile={handleDownload}
               onShareFile={(file) =>
-                setShareTarget({ ref: { type: 'file', id: file.id }, name: file.name })
+                setShareTarget({
+                  ref: { type: "file", id: file.id },
+                  name: file.name,
+                })
               }
               onDropItem={handleDropItem}
+              highlightFileId={highlightFileId}
             />
           )}
         </main>
@@ -247,11 +312,14 @@ export function BrowserView({
 
       <UploadQueuePanel />
 
-      <FilePreviewDialog file={previewFile} onOpenChange={(open) => !open && setPreviewFile(null)} />
+      <FilePreviewDialog
+        file={previewFile}
+        onOpenChange={(open) => !open && setPreviewFile(null)}
+      />
 
       <ShareDialog
         target={shareTarget?.ref ?? null}
-        itemName={shareTarget?.name ?? ''}
+        itemName={shareTarget?.name ?? ""}
         onOpenChange={(open) => !open && setShareTarget(null)}
       />
 
@@ -271,11 +339,13 @@ export function BrowserView({
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           itemName={deleteTarget.item.name}
           itemType={deleteTarget.type}
-          folderIdForPreview={deleteTarget.type === 'folder' ? deleteTarget.item.id : undefined}
+          folderIdForPreview={
+            deleteTarget.type === "folder" ? deleteTarget.item.id : undefined
+          }
           isPending={isDeletePending}
           onConfirm={handleDeleteConfirm}
         />
       ) : null}
     </>
-  )
+  );
 }

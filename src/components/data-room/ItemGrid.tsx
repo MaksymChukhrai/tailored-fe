@@ -18,6 +18,7 @@ interface ItemGridProps {
   onDownloadFile: (file: FileNode) => void
   onShareFile: (file: FileNode) => void
   onDropItem: (item: DraggedItem, targetFolderId: string) => void
+  highlightFileId?: string
 }
 
 export function ItemGrid({
@@ -33,6 +34,7 @@ export function ItemGrid({
   onDownloadFile,
   onShareFile,
   onDropItem,
+  highlightFileId,
 }: ItemGridProps): JSX.Element {
   if (folders.length === 0 && files.length === 0) {
     return (
@@ -70,6 +72,7 @@ export function ItemGrid({
           onDelete={onDeleteFile}
           onDownload={onDownloadFile}
           onShare={onShareFile}
+          isHighlighted={file.id === highlightFileId}
         />
       ))}
     </div>
